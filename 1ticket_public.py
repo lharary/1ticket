@@ -37,63 +37,64 @@ def download_file():
     profile.set_preference('browser.download.manager.closeWhenDone', False)
     
     ## downloading and saving file to specified location
-    logging.info('selenium preferences set - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - selenium preferences set')
     driver = webdriver.Firefox(profile)
     driver.implicitly_wait(10)
     driver.get('https://1ticket.com/login.asp')
-    logging.info('firefox open successful - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - firefox open successful')
     assert "1ticket.com" in driver.title
     elem = driver.find_element_by_name("fld_username")
-    elem.send_keys("username")
+    user = 'your username here'
+    pw = 'your password here'
+    elem.send_keys(user)
     elem1 = driver.find_element_by_name("fld_password")
-    elem1.send_keys("password")
+    elem1.send_keys(pw)
     elem1.submit()
     driver.get('https://1ticket.com/tickets_tm.asp');
-    logging.info('selenium login successful - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - selenium login successful')
     time.sleep(5) # delays for 5 seconds
     driver.find_element_by_css_selector("a[href*='export']").click();
     driver.implicitly_wait(60)
     time.sleep(45) # delays for 5 seconds
     print(driver.title)
     driver.quit()
-    logging.info('selenium driver quit - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - selenium driver quit')
 
-def convert_file():
-    # method 'convert_file' converts file to readable utf-8 formatting and saves as .txt
-    os.system("/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --convert-to csv /Users/Leon/Desktop/1ticket/orders.xls")
+def convert_file(file):
+    # method 'convert_file' converts file to readable utf-8 formatting and saves as .txt, 
+    # then removes .xls file
+    os.system("/Applications/LibreOffice.app/Contents/MacOS/soffice --headless --convert-to csv "+file)
     os.system("cp orders.csv orders.txt")
-    os.system("iconv -f ISO-8859-15 -t UTF-8 orders.txt > ex.txt")
-    logging.info('file converted - '+str(today)) 
+    os.system("iconv -f ISO-8859-15 -t UTF-8 orders.txt > /Users/Leon/Desktop/1ticket/ex.txt")
+    logging.info(datetime.datetime.now().isoformat()+' - file converted')
     os.system("rm /Users/Leon/Desktop/1ticket/orders.xls")
-    logging.info('orders.xls removed - '+str(today)) 
+    logging.info(datetime.datetime.now().isoformat()+' - orders.xls removed')
 
 def drop_table(cursor):
     # method drops old table table 'matt.orders'
     cursor.execute("drop table 1ticket.orders")
-    
-    logging.info('table dropped - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - table dropped')
 
 def create_table(cursor):    
     # method creates new empty table 'matt.orders'
     cursor.execute("""create table 1ticket.orders  (event_date date,
     event_name varchar(90), quantity int, section varchar(20), row varchar(5), 
     order_cost decimal(12,2), venue varchar(65), purchase_date date)""")
-    logging.info('table created - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - new table created')
     cursor.close()
 
 def import_data_from_csv(cursor, cnx, f):
     #method imports txt data to database table, line by line
-    logging.info('opening file - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - opening file')
     with open(f, 'r') as f:
         myString = f.read()
     t= myString.splitlines()
-    logging.info('importing data - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - importing file')
     for i in t[1:]:
         row = i.split(',')
         while len(row)!=8:
             row[1] = row[1]+row[2]
             del row[2] 
-        print row 
         row_0 = row[0]
         row_7 = row[7]
         row[0] = datetime.datetime.strptime(row[0], '%m/%d/%Y').date()
@@ -103,11 +104,12 @@ def import_data_from_csv(cursor, cnx, f):
             'VALUES(%s, %s, %s, %s, %s, %s, %s, %s)', 
             row)
         cnx.commit()
-    logging.info('data imported! - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - data imported!')
 
 def query_nday(cursor, days, limit=20):
-    # method recieves a cursor, amount of days, and a limit. the method then runs a query and creates an html
-    # string for a table with the sales results of the last 'days' amount of days
+    #method recieves a mySQL cursor, an amount of days 'days', and a limit of results 'limit'
+    #  with those arguments, this method will return a table in the form of html string, containing
+    # sales data (featuring sales by events) for the trailing 'days' sorted by order count
 
     if days == 1:
         title_days ='Yesterday'
@@ -137,12 +139,13 @@ def query_nday(cursor, days, limit=20):
             output = output + " <td> " + str(j) +  "</td>"
         output = output + "</tr>"
     output = output +"</table>"
-    logging.info ('query '+title_days+' day done - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+" - query "+title_days+" day done")
     return output 
 
 def query_topEvents_by_dollars(cursor, days, limit = 30):
-    # method recieves a cursor and a limit. the method then runs a query and creates an html
-    # string for a table with the query results for top events sorted by dollars
+    #method recieves a mySQL cursor, an amount of days 'days', and a limit of results 'limit'
+    #  with those arguments, this method will return a table in the form of html string, containing
+    # sales data (featuring sales by performer) for the trailing 'days' sorted by revenue
 
     # building html table
     output = ("\
@@ -167,12 +170,13 @@ def query_topEvents_by_dollars(cursor, days, limit = 30):
             output = output + " <td> " + str(j) +  "</td>"
         output = output + "</tr>"
     output = output +"</table>"
-    logging.info('top event by volume query done - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+" - top event by volume query done")
     return output
  
 def query_topEvents_by_orders(cursor, days, limit=30):
-    # method recieves a cursor and a limit. the method then runs a query and creates an html
-    # string for a table with the query results for top events sorted by orders
+    #method recieves a mySQL cursor, an amount of days 'days', and a limit of results 'limit'
+    #  with those arguments, this method will return a table in the form of html string, containing
+    # sales data (featuring sales by performer) for the trailing 'days' sorted by order count
 
     #building html table
     output = ("\
@@ -196,7 +200,7 @@ def query_topEvents_by_orders(cursor, days, limit=30):
             output = output + " <td> " + str(j) +  "</td>"
         output = output + "</tr>"
     output = output +"</table>"
-    logging.info('top events by orders query done - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+" - top event by order query done")
     return output
 
 def email(to, subject, body): 
@@ -212,40 +216,48 @@ def email(to, subject, body):
     msg.attach(part2)
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    pw = "password"
+    pw = 'email password'
     server.login(fromaddr, pw)
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
-    logging.info('email ('+subject+' ) sent to '+ to+' - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+" - email ("+subject+" ) sent to "+ to+" - '")
     server.quit()
 
 
 ##Main
 def main():
+    # main method downloads data from 1ticket, converts file to readable format, then imports data to mysql db
+    # after that, main will run various queries that return different splits sales data in html tables
+    # main will then email out the data tables
+    # **logging data is created and placed in file called '1_ticket_logging_file.txt**'
+    logging.info(datetime.datetime.now().isoformat()+' - process started')
+    file_xls = '/Users/Leon/Desktop/1ticket/orders.xls'
     
-    download_file()
-    convert_file()
+
+    #download_file()
+    #convert_file(file_xls)
     today = date.today()
-    LOG_FILENAME = 'logging_file.txt'
+    LOG_FILENAME = '1ticket_logging_file.txt'
     logging.basicConfig(filename=LOG_FILENAME,
                         level=logging.DEBUG,)
 
 
-    data_file = '/Users/Leon/ex.txt'
-    cnx = mysql.connector.connect(user='root', password='password',
+    data_file = '/Users/Leon/Desktop/1ticket/ex.txt'
+    pw = 'mysql password'
+    cnx = mysql.connector.connect(user='root', password=pw,
                             host='127.0.0.1',
-                            database='1ticket')                            
-    logging.info('connected to db - '+str(today))
+                            database='matt')                            
+    logging.info(datetime.datetime.now().isoformat()+' - connected to db')
     cursor = cnx.cursor()
     # import data to table
-    """
+    
     with closing( cnx.cursor() ) as cursor:
         drop_table(cursor)
     with closing( cnx.cursor() ) as cursor:
         create_table(cursor)
     with closing( cnx.cursor() ) as cursor:    
         import_data_from_csv(cursor, cnx, data_file)
-"""
+
         
     # run queries
     with closing( cnx.cursor() ) as cursor:    
@@ -260,17 +272,17 @@ def main():
         table_topEvent = query_topEvents_by_orders(cursor, 60)    
     # email setup
     body1 = table_1day+ "<br><br>"+table_10day+"<br><br>"+table_30day   
-    to = 'to email'
+    to = 'to email address here'
     subject = 'Ticketmaster Purchase Report'
     email(to, subject, body1)
     body2 = table_topPerformer + "<br><br>"+table_topEvent
     email(to, subject, body2)
     cursor.close()
-    logging.info('cursor closed - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - cursor closed')
     cnx.close()
-    logging.info('connection closed - '+str(today))
+    logging.info(datetime.datetime.now().isoformat()+' - connection closed')
+    logging.info(datetime.datetime.now().isoformat()+' - process completed \n')
 
 if __name__ == '__main__': 
     main()
-
 
