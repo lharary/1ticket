@@ -26,3 +26,5 @@ Contributors
 
 Created by Leon Harary
 
+**
+In addition, there is a parser that can go through email reciepts from ticketmaster, saved as .txt, and grab necessary data and validate it
